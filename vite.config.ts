@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const baseUrl = process.env.VITE_BASE_URL ?? '/';
+
 export default defineConfig({
-  base: '/Heic-Converter-v2/',
+  base: baseUrl,
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -16,14 +18,14 @@ export default defineConfig({
         name: 'HEIC/HEIF + iPhone Converter',
         short_name: 'HEIC Converter',
         description: 'Offline HEIC/HEIF photo and iPhone video converter that runs entirely in your browser.',
-        start_url: '/Heic-Converter-v2/',
-        scope: '/Heic-Converter-v2/',
+        start_url: baseUrl,
+        scope: baseUrl,
         display: 'standalone',
         background_color: '#0f172a',
         theme_color: '#0f172a',
         icons: [
           {
-            src: '/Heic-Converter-v2/icons/icon.svg',
+            src: `${baseUrl}icons/icon.svg`,
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'any'
@@ -31,7 +33,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        navigateFallback: '/Heic-Converter-v2/index.html',
+        navigateFallback: `${baseUrl}index.html`,
         globPatterns: ['**/*.{js,css,html,svg,wasm,worker.js}']
       }
     })

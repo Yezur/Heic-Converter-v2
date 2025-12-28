@@ -1,14 +1,14 @@
 {
   "name": "HEIC/HEIF + iPhone Converter",
   "short_name": "HEIC Converter",
-  "start_url": "/Heic-Converter-v2/",
-  "scope": "/Heic-Converter-v2/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "/Heic-Converter-v2/icons/icon.svg",
+      "src": "icons/icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml"
     }
