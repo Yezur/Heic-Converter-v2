@@ -10,6 +10,7 @@ const queueList = document.getElementById('queueList') as HTMLDivElement;
 const queueStatus = document.getElementById('queueStatus') as HTMLParagraphElement;
 const downloadAllButton = document.getElementById('downloadAll') as HTMLButtonElement;
 const clearAllButton = document.getElementById('clearAll') as HTMLButtonElement;
+const startConvertButton = document.getElementById('startConvert') as HTMLButtonElement;
 
 qualityValue.textContent = qualityInput.value;
 qualityInput.addEventListener('input', () => {
@@ -101,6 +102,9 @@ const renderQueue = () => {
     queueList.appendChild(row);
   }
   updateQueueStatus();
+  const hasQueued = queue.some((item) => item.status === 'queued');
+  startConvertButton.disabled = isProcessing || !hasQueued;
+  startConvertButton.textContent = isProcessing ? 'Converting…' : 'Start conversion';
 };
 
 const addFiles = (files: FileList | File[]) => {
@@ -117,7 +121,6 @@ const addFiles = (files: FileList | File[]) => {
     });
   }
   renderQueue();
-  processQueue();
 };
 
 const removeItem = (id: string) => {
@@ -440,6 +443,10 @@ filePicker.addEventListener('change', () => {
 clearAllButton.addEventListener('click', clearAll);
 
 downloadAllButton.addEventListener('click', downloadAll);
+
+startConvertButton.addEventListener('click', () => {
+  processQueue();
+});
 
 setupDropzone();
 renderQueue();
