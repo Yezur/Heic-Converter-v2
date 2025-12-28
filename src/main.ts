@@ -104,8 +104,10 @@ const renderQueue = () => {
   }
   updateQueueStatus();
   const hasQueued = queue.some((item) => item.status === 'queued');
+  const hasReady = queue.some((item) => item.outputBlob && item.outputName);
   startConvertButton.disabled = isProcessing || !hasQueued;
   startConvertButton.textContent = isProcessing ? 'Converting…' : 'Start conversion';
+  downloadAllButton.disabled = !hasReady;
 };
 
 const generateQueueId = () => {
@@ -191,7 +193,11 @@ const downloadBlob = (blob: Blob, name: string) => {
 
 const downloadAll = async () => {
   const ready = queue.filter((item) => item.outputBlob && item.outputName);
-  if (ready.length === 0) return;
+  if (ready.length === 0) {
+    queueStatus.textContent =
+      queue.length === 0 ? 'No files yet.' : 'No completed files to download yet.';
+    return;
+  }
   const entries = await Promise.all(
     ready.map(async (item) => ({
       name: item.outputName as string,
