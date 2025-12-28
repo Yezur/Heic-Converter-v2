@@ -37,6 +37,7 @@ let ffmpegInstance: any = null;
 let ffmpegLoading: Promise<any> | null = null;
 let heifModule: any = null;
 let heifLoading: Promise<any> | null = null;
+let fallbackIdCounter = 0;
 
 const baseUrl = import.meta.env.BASE_URL || '/';
 
@@ -107,13 +108,35 @@ const renderQueue = () => {
   startConvertButton.textContent = isProcessing ? 'Converting…' : 'Start conversion';
 };
 
+const generateQueueId = () => {
+  if (typeof crypto !== 'undefined') {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    if (typeof crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const toHex = (value: number) => value.toString(16).padStart(2, '0');
+      const parts = Array.from(bytes, toHex).join('');
+      return `${parts.slice(0, 8)}-${parts.slice(8, 12)}-${parts.slice(12, 16)}-${parts.slice(
+        16,
+        20
+      )}-${parts.slice(20)}`;
+    }
+  }
+  fallbackIdCounter = (fallbackIdCounter + 1) % Number.MAX_SAFE_INTEGER;
+  return `${Date.now().toString(36)}-${fallbackIdCounter.toString(36)}`;
+};
+
 const addFiles = (files: FileList | File[]) => {
   const list = Array.from(files);
   for (const file of list) {
     const ext = file.name.toLowerCase();
     const kind = ext.endsWith('.heic') || ext.endsWith('.heif') ? 'image' : 'video';
     queue.push({
-      id: crypto.randomUUID(),
+      id: generateQueueId(),
       file,
       kind,
       status: 'queued',
