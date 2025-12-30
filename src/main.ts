@@ -39,7 +39,14 @@ let heifModule: any = null;
 let heifLoading: Promise<any> | null = null;
 let fallbackIdCounter = 0;
 
-const baseUrl = import.meta.env.BASE_URL || '/';
+const baseUrl = new URL(import.meta.env.BASE_URL || '/', document.baseURI).toString();
+const resolveAssetUrl = (path: string) => new URL(path, baseUrl).toString();
+const resolvePublicAssetUrl = (path: string) => new URL(`public/${path}`, baseUrl).toString();
+
+const importModuleWithFallback = (primary: string, fallback: string) =>
+  import(/* @vite-ignore */ primary)
+    .then((mod: any) => ({ mod, baseUrl: primary }))
+    .catch(() => import(/* @vite-ignore */ fallback).then((mod: any) => ({ mod, baseUrl: fallback })));
 
 const updateQueueStatus = () => {
   if (queue.length === 0) {
@@ -218,11 +225,15 @@ const clearAll = () => {
 const loadHeif = async () => {
   if (heifModule) return heifModule;
   if (!heifLoading) {
-    heifLoading = import(/* @vite-ignore */ `${baseUrl}heif/libheif.js`).then((mod: any) => {
+    heifLoading = importModuleWithFallback(
+      resolveAssetUrl('heif/libheif.js'),
+      resolvePublicAssetUrl('heif/libheif.js')
+    ).then(({ mod, baseUrl: moduleUrl }) => {
       const factory = mod.default ?? mod;
+      const moduleBase = new URL('.', moduleUrl).toString();
       if (typeof factory === 'function') {
         return factory({
-          locateFile: (file: string) => `${baseUrl}heif/${file}`
+          locateFile: (file: string) => new URL(file, moduleBase).toString()
         });
       }
       return factory;
@@ -235,15 +246,19 @@ const loadHeif = async () => {
 const loadFFmpeg = async () => {
   if (ffmpegInstance) return ffmpegInstance;
   if (!ffmpegLoading) {
-    ffmpegLoading = import(/* @vite-ignore */ `${baseUrl}ffmpeg/ffmpeg.min.js`).then((mod: any) => {
+    ffmpegLoading = importModuleWithFallback(
+      resolveAssetUrl('ffmpeg/ffmpeg.min.js'),
+      resolvePublicAssetUrl('ffmpeg/ffmpeg.min.js')
+    ).then(({ mod, baseUrl: moduleUrl }) => {
       const create = mod.createFFmpeg || mod.default?.createFFmpeg || mod.default;
       const fetchFile = mod.fetchFile || mod.default?.fetchFile;
       if (!create) {
         throw new Error('ffmpeg.wasm failed to load.');
       }
+      const moduleBase = new URL('.', moduleUrl).toString();
       const instance = create({
         log: true,
-        corePath: `${baseUrl}ffmpeg/ffmpeg-core.js`
+        corePath: new URL('ffmpeg-core.js', moduleBase).toString()
       });
       instance.fetchFile = fetchFile;
       return instance;
