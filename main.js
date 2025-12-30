@@ -25,7 +25,7 @@ let heifModule = null;
 let heifLoading = null;
 let fallbackIdCounter = 0;
 
-const baseUrl = new URL(import.meta.env.BASE_URL || '/', document.baseURI).href;
+const baseUrl = new URL(import.meta.env?.BASE_URL ?? '/', document.baseURI).href;
 const resolveAssetUrl = (path) => new URL(path, baseUrl).href;
 const resolvePublicAssetUrl = (path) => new URL(`public/${path}`, baseUrl).href;
 
