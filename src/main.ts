@@ -39,7 +39,7 @@ let heifModule: any = null;
 let heifLoading: Promise<any> | null = null;
 let fallbackIdCounter = 0;
 
-const baseUrl = new URL(import.meta.env.BASE_URL || '/', document.baseURI).toString();
+const baseUrl = new URL(import.meta.env?.BASE_URL ?? '/', document.baseURI).toString();
 const resolveAssetUrl = (path: string) => new URL(path, baseUrl).toString();
 const resolvePublicAssetUrl = (path: string) => new URL(`public/${path}`, baseUrl).toString();
 
