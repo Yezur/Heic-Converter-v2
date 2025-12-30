@@ -43,10 +43,32 @@ const baseUrl = new URL(import.meta.env.BASE_URL || '/', document.baseURI).toStr
 const resolveAssetUrl = (path: string) => new URL(path, baseUrl).toString();
 const resolvePublicAssetUrl = (path: string) => new URL(`public/${path}`, baseUrl).toString();
 
-const importModuleWithFallback = (primary: string, fallback: string) =>
+const checkedAssets = new Set<string>();
+
+const warnIfMissingAsset = async (url: string, label: string, error?: unknown) => {
+  if (checkedAssets.has(url)) return;
+  checkedAssets.add(url);
+  if (typeof fetch !== 'function') return;
+  try {
+    const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+    if (!response.ok) {
+      console.warn(`[HEIC Converter] ${label} asset missing (${response.status}): ${url}`);
+    }
+  } catch (fetchError) {
+    console.warn(`[HEIC Converter] ${label} asset check failed: ${url}`, fetchError ?? error);
+  }
+};
+
+const importModuleWithFallback = (primary: string, fallback: string, label = 'Asset') =>
   import(/* @vite-ignore */ primary)
     .then((mod: any) => ({ mod, baseUrl: primary }))
-    .catch(() => import(/* @vite-ignore */ fallback).then((mod: any) => ({ mod, baseUrl: fallback })));
+    .catch(async (error) => {
+      void warnIfMissingAsset(primary, label, error);
+      return import(/* @vite-ignore */ fallback).then((mod: any) => ({ mod, baseUrl: fallback }));
+    });
+
+const isHeifPlaceholder = (module: any) =>
+  Boolean(module?.__HEIF_PLACEHOLDER__ || module?.default?.__HEIF_PLACEHOLDER__);
 
 const updateQueueStatus = () => {
   if (queue.length === 0) {
@@ -227,8 +249,15 @@ const loadHeif = async () => {
   if (!heifLoading) {
     heifLoading = importModuleWithFallback(
       resolveAssetUrl('heif/libheif.js'),
-      resolvePublicAssetUrl('heif/libheif.js')
-    ).then(({ mod, baseUrl: moduleUrl }) => {
+      resolvePublicAssetUrl('heif/libheif.js'),
+      'HEIF decoder'
+    ).then(async ({ mod, baseUrl: moduleUrl }) => {
+      if (isHeifPlaceholder(mod)) {
+        const fallbackUrl = resolvePublicAssetUrl('heif/libheif.js');
+        const fallbackMod = await import(/* @vite-ignore */ fallbackUrl);
+        mod = fallbackMod;
+        moduleUrl = fallbackUrl;
+      }
       const factory = mod.default ?? mod;
       const moduleBase = new URL('.', moduleUrl).toString();
       if (typeof factory === 'function') {
@@ -248,7 +277,8 @@ const loadFFmpeg = async () => {
   if (!ffmpegLoading) {
     ffmpegLoading = importModuleWithFallback(
       resolveAssetUrl('ffmpeg/ffmpeg.min.js'),
-      resolvePublicAssetUrl('ffmpeg/ffmpeg.min.js')
+      resolvePublicAssetUrl('ffmpeg/ffmpeg.min.js'),
+      'FFmpeg'
     ).then(({ mod, baseUrl: moduleUrl }) => {
       const create = mod.createFFmpeg || mod.default?.createFFmpeg || mod.default;
       const fetchFile = mod.fetchFile || mod.default?.fetchFile;
