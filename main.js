@@ -27,6 +27,12 @@ let fallbackIdCounter = 0;
 
 const baseUrl = new URL('./', document.baseURI).href;
 const resolveAssetUrl = (path) => new URL(path, baseUrl).href;
+const resolvePublicAssetUrl = (path) => new URL(`public/${path}`, baseUrl).href;
+
+const importModuleWithFallback = (primary, fallback) =>
+  import(primary)
+    .then((mod) => ({ mod, baseUrl: primary }))
+    .catch(() => import(fallback).then((mod) => ({ mod, baseUrl: fallback })));
 
 const updateQueueStatus = () => {
   if (queue.length === 0) {
@@ -205,11 +211,15 @@ const clearAll = () => {
 const loadHeif = async () => {
   if (heifModule) return heifModule;
   if (!heifLoading) {
-    heifLoading = import(resolveAssetUrl('heif/libheif.js')).then((mod) => {
+    heifLoading = importModuleWithFallback(
+      resolveAssetUrl('heif/libheif.js'),
+      resolvePublicAssetUrl('heif/libheif.js')
+    ).then(({ mod, baseUrl: moduleUrl }) => {
       const factory = mod.default ?? mod;
+      const moduleBase = new URL('.', moduleUrl).href;
       if (typeof factory === 'function') {
         return factory({
-          locateFile: (file) => resolveAssetUrl(`heif/${file}`)
+          locateFile: (file) => new URL(file, moduleBase).href
         });
       }
       return factory;
@@ -222,15 +232,19 @@ const loadHeif = async () => {
 const loadFFmpeg = async () => {
   if (ffmpegInstance) return ffmpegInstance;
   if (!ffmpegLoading) {
-    ffmpegLoading = import(resolveAssetUrl('ffmpeg/ffmpeg.min.js')).then((mod) => {
+    ffmpegLoading = importModuleWithFallback(
+      resolveAssetUrl('ffmpeg/ffmpeg.min.js'),
+      resolvePublicAssetUrl('ffmpeg/ffmpeg.min.js')
+    ).then(({ mod, baseUrl: moduleUrl }) => {
       const create = mod.createFFmpeg || mod.default?.createFFmpeg || mod.default;
       const fetchFile = mod.fetchFile || mod.default?.fetchFile;
       if (!create) {
         throw new Error('ffmpeg.wasm failed to load.');
       }
+      const moduleBase = new URL('.', moduleUrl).href;
       const instance = create({
         log: true,
-        corePath: resolveAssetUrl('ffmpeg/ffmpeg-core.js')
+        corePath: new URL('ffmpeg-core.js', moduleBase).href
       });
       instance.fetchFile = fetchFile;
       return instance;
