@@ -25,7 +25,8 @@ let heifModule = null;
 let heifLoading = null;
 let fallbackIdCounter = 0;
 
-const baseUrl = './';
+const baseUrl = new URL('./', document.baseURI).href;
+const resolveAssetUrl = (path) => new URL(path, baseUrl).href;
 
 const updateQueueStatus = () => {
   if (queue.length === 0) {
@@ -204,11 +205,11 @@ const clearAll = () => {
 const loadHeif = async () => {
   if (heifModule) return heifModule;
   if (!heifLoading) {
-    heifLoading = import(`${baseUrl}heif/libheif.js`).then((mod) => {
+    heifLoading = import(resolveAssetUrl('heif/libheif.js')).then((mod) => {
       const factory = mod.default ?? mod;
       if (typeof factory === 'function') {
         return factory({
-          locateFile: (file) => `${baseUrl}heif/${file}`
+          locateFile: (file) => resolveAssetUrl(`heif/${file}`)
         });
       }
       return factory;
@@ -221,7 +222,7 @@ const loadHeif = async () => {
 const loadFFmpeg = async () => {
   if (ffmpegInstance) return ffmpegInstance;
   if (!ffmpegLoading) {
-    ffmpegLoading = import(`${baseUrl}ffmpeg/ffmpeg.min.js`).then((mod) => {
+    ffmpegLoading = import(resolveAssetUrl('ffmpeg/ffmpeg.min.js')).then((mod) => {
       const create = mod.createFFmpeg || mod.default?.createFFmpeg || mod.default;
       const fetchFile = mod.fetchFile || mod.default?.fetchFile;
       if (!create) {
@@ -229,7 +230,7 @@ const loadFFmpeg = async () => {
       }
       const instance = create({
         log: true,
-        corePath: `${baseUrl}ffmpeg/ffmpeg-core.js`
+        corePath: resolveAssetUrl('ffmpeg/ffmpeg-core.js')
       });
       instance.fetchFile = fetchFile;
       return instance;
@@ -461,6 +462,6 @@ renderQueue();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(`${baseUrl}sw.js`).catch(() => undefined);
+    navigator.serviceWorker.register(resolveAssetUrl('sw.js')).catch(() => undefined);
   });
 }
