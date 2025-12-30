@@ -2,6 +2,8 @@
 
 An offline-first, 100% client-side converter for HEIC/HEIF photos and iPhone videos. Drag & drop your files, convert them locally in your browser, and download individual outputs or a ZIP archive. Nothing is uploaded to a server.
 
+**Website:** https://yezur.github.io/Heic-Converter-v2/
+
 ---
 
 # User Manual (for everyone, including non-technical users)
