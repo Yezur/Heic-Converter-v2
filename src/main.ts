@@ -67,6 +67,9 @@ const importModuleWithFallback = (primary: string, fallback: string, label = 'As
       return import(/* @vite-ignore */ fallback).then((mod: any) => ({ mod, baseUrl: fallback }));
     });
 
+const isHeifPlaceholder = (module: any) =>
+  Boolean(module?.__HEIF_PLACEHOLDER__ || module?.default?.__HEIF_PLACEHOLDER__);
+
 const updateQueueStatus = () => {
   if (queue.length === 0) {
     queueStatus.textContent = 'No files yet.';
@@ -248,7 +251,13 @@ const loadHeif = async () => {
       resolveAssetUrl('heif/libheif.js'),
       resolvePublicAssetUrl('heif/libheif.js'),
       'HEIF decoder'
-    ).then(({ mod, baseUrl: moduleUrl }) => {
+    ).then(async ({ mod, baseUrl: moduleUrl }) => {
+      if (isHeifPlaceholder(mod)) {
+        const fallbackUrl = resolvePublicAssetUrl('heif/libheif.js');
+        const fallbackMod = await import(/* @vite-ignore */ fallbackUrl);
+        mod = fallbackMod;
+        moduleUrl = fallbackUrl;
+      }
       const factory = mod.default ?? mod;
       const moduleBase = new URL('.', moduleUrl).toString();
       if (typeof factory === 'function') {
